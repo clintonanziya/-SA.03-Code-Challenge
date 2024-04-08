@@ -1,0 +1,153 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Code Challenge</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.11.8/semantic.min.css"
+    />
+    <link rel="stylesheet" href="assets/index.css" />
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+  </head>
+  <body>
+    <!-- navbar -->
+    <div class="heading">
+      <div class="item">
+        <h2 class="ui header">
+          <i class="orange ticket icon"></i>
+          <div class="content">FLATDANGO</div>
+          <div class="sub header" id="subtitle">BUY MOVIE TICKETS</div>
+        </h2>
+      </div>
+    </div>
+
+    <div class="ui centered grid">
+      <div class="four wide column">
+        <div class="list-container">
+          <!-- side menu -->
+          <ul class="ui divided list" id="films">
+            <li class="film item">Movie titles will go here.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- poster -->
+      <div class="four wide column">
+        <img
+          id="poster"
+          src="assets/placeholderImage.png"
+          alt="[MOVIE TITLE]"
+        />
+      </div>
+
+      <!-- showing info -->
+      <div class="four wide column">
+        <div class="ui cards" id="showing">
+          <div class="card">
+            <div id="title" class="title">[MOVIE TITLE]</div>
+            <div id="runtime" class="meta">[RUNTIME] minutes</div>
+            <div class="content">
+              <div class="description">
+                <div id="film-info">[INSERT MOVIE DESCRIPTION HERE]</div>
+                <span id="showtime" class="ui label">[SHOWTIME]</span>
+                <span id="ticket-num">[X]</span> remaining tickets
+              </div>
+            </div>
+            <div class="extra content">
+              <button id="buy-ticket" class="ui orange button">
+                Buy Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const movieDetailsContainer = document.getElementById("showing");
+        const filmsList = document.getElementById("films");
+
+        // Function to fetch and display details of the first movie
+        function displayFirstMovie() {
+          fetch("http://localhost:3000/films/1")
+            .then((response) => response.json())
+            .then((movie) => {
+              const availableTickets = movie.capacity - movie.tickets_sold;
+              const soldOutClass = availableTickets === 0 ? "sold-out" : "";
+              const buyButtonText = availableTickets === 0 ? "Sold Out" : "Buy Ticket";
+
+              movieDetailsContainer.innerHTML = `
+                  <div class="card">
+                      <div class="title">${movie.title}</div>
+                      <div class="meta">${movie.runtime} minutes</div>
+                      <div class="content">
+                          <div class="description">
+                              ${movie.description}
+                              <span class="ui label">${movie.showtime}</span>
+                              <span id="ticket-num" class="${soldOutClass}">${availableTickets}</span> remaining tickets
+                          </div>
+                      </div>
+                      <div class="extra content">
+                          <button id="buy-ticket" class="ui orange button ${soldOutClass}" ${availableTickets === 0 ? "disabled" : ""}>${buyButtonText}</button>
+                      </div>
+                  </div>
+              `;
+            });
+        }
+
+        // Function to fetch all movies and display them in the films list
+        function displayAllMovies() {
+          fetch("http://localhost:3000/films")
+            .then((response) => response.json())
+            .then((movies) => {
+              filmsList.innerHTML = "";
+              movies.forEach((movie) => {
+                const listItem = document.createElement("li");
+                listItem.textContent = movie.title;
+                listItem.className =
+                  movie.tickets_sold === movie.capacity
+                    ? "film-item sold-out"
+                    : "film-item";
+                filmsList.appendChild(listItem);
+              });
+            });
+        }
+
+        // Function to handle buying tickets for a movie
+        function buyTicket(movieId) {
+          fetch(`http://localhost:3000/films/${movieId}`)
+            .then((response) => response.json())
+            .then((movie) => {
+              if (movie.tickets_sold < movie.capacity) {
+                const newTicketsSold = movie.tickets_sold + 1;
+                fetch(`http://localhost:3000/films/${movieId}`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    tickets_sold: newTicketsSold,
+                  }),
+                }).then(() => {
+                  displayFirstMovie();
+                  displayAllMovies();
+                });
+              }
+            });
+        }
+
+        // Event listener for buying tickets
+        movieDetailsContainer.addEventListener("click", (event) => {
+          if (event.target.id === "buy-ticket") {
+            const movieId = event.target.dataset.id;
+            buyTicket(movieId);
+          }
+        });
+
+        // Initial display of the first movie details and all movies list
+        displayFirstMovie();
+        displayAllMovies();
+      });
+    </script>
+  </body>
+</html>
