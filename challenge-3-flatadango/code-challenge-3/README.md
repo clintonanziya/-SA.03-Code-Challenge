@@ -24,6 +24,7 @@ Git clone https://github.com/hamida-mstafa/Triangle-tracker.git
 
 ## Technologies used
 HTML
+style.css
 Github
 Javascript
 
